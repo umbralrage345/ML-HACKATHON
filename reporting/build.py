@@ -93,6 +93,8 @@ def build(directory, destination):
     protocol = load(directory, "protocol")
     search = load(directory, "bayesian")
     decoder = load(directory, "decoder")
+    trial = next(r for r in decoder["decoder_trials"] if r["config"] == decoder["selected"])
+    baseline = decoder["classifier"]
     alignment = load(directory, "alignment")
     http = load(directory, "development_http")
     with (directory / "exploration.csv").open(encoding="utf-8") as file:
@@ -134,7 +136,12 @@ def build(directory, destination):
 
     section(1, "Dataset Understanding and Exploratory Data Analysis")
     paragraph("PathSnap | Consolidated technical report", "Heading2")
-    paragraph("Development evidence from 80 training and 10 student-test trips. The official evaluator partition and two-laptop demonstration are pending.")
+    paragraph("This report presents recorded development results from 80 training and 10 student-test trips. Official evaluator scores and two-laptop demonstration evidence are pending.")
+    paragraph(f"Histogram gradient boosting had the highest student-test candidate macro F1 "
+              f"({models['hist_gradient']['student']['macro_f1']:.2%}). The tuned decision tree had the highest "
+              f"pooled observation top-1 ({models['tuned']['student']['top1']:.2%}) and was selected for deployment. "
+              f"Adding Viterbi increased mean route sequence F1 from {baseline['mean_by_trip']['sequence_f1']:.2%} "
+              f"to {trial['mean_by_trip']['sequence_f1']:.2%} across the ten student-test trips.")
     columns = ["Partition", "Trips", "GPS rows", "Invalid GPS", "Gaps >30 s", "Reference breaks"]
     rows = []
     for split, quality in alignment.items():
@@ -152,8 +159,8 @@ def build(directory, destination):
     paragraph("Each supplied trip has a track, nodes, directed arcs and an ordered arc-ID reference. Parsers preserve row IDs, validate coordinates and timestamps, and test node bounds. Missing file sizes and invalid rows are counted separately. A local projection converts angular coordinates to metres. The candidate shortlist uses the nearest 64 midpoint samples spaced at most 35 m apart and ranks up to eight distinct arcs by segment distance. Dense junctions, parallel roads, GPS error and shortlist truncation can hide the reference arc.")
     paragraph("GPS locations can be offset by noise, and irregular sampling drops information between observations. A monotone geometry alignment allows repeated observations on an arc and skipped arcs. It uses capped residuals and weak progress and endpoint penalties. Residuals over 75 m are unlabelled. The reference encodes chronological arc occurrences and contains directed breaks. It provides approximate observation targets after alignment, with ambiguity at junctions, GPS gaps and competing parallel arcs.")
     paragraph("Features combine segment and endpoint distances, projected fraction, length, heading agreement, interval, speed, rank, relative distance and directed degrees. Heading and relative distance had the largest held-out permutation effects. Temporal motion features reset at invalid rows, nonpositive intervals and gaps above 30 s.")
-    figure("gps_counts.png", "GPS row counts by development partition. Source: exploration.csv.", height=110)
-    figure("student_trajectory.png", "Student-test trip 00000000. Projected GPS and nearby road segments.", height=130)
+    figure("gps_counts.png", "GPS row counts by development partition. Source: exploration.csv.", height=90)
+    figure("student_trajectory.png", "Student-test trip 00000000. Projected GPS and nearby road segments.", height=105)
 
     section(2, "Model Experimentation and Comparison")
     paragraph(f"Every fitting trip is sampled at stride {protocol['fit_stride']}. All validation observations are scored. Three GroupKFold splits keep each trip intact, and scaling is fitted inside models that use it. Student testing is held out of fitting and TPE. The comparison uses observation top-1 for model selection and grouped candidate macro F1 as a tiebreaker.")
@@ -219,8 +226,6 @@ def build(directory, destination):
     paragraph("A hidden state is a directed candidate arc with its projected fraction u. The emission log weight is log(clip(p, 1e-5, 1)) - 0.5*(d/sigma)^2, where p is the trained candidate probability and d is its GPS residual. These are log potentials used for path ranking.")
     paragraph("For different arcs, L = (1-u_prev)*len_prev + shortest_path(prev.end, cur.start) + u_cur*len_cur. For the same arc use the absolute signed projected progress, with max(0, -progress-12)/beta as a backward penalty. The transition log weight is -abs(L-D)/beta minus this penalty, with D the GPS displacement. An unreachable or over-distance transition scores negative infinity. The distance cap is min(450, max(70, 65*elapsed)) metres.")
     paragraph("Viterbi updates S_t(j) = E_t(j) + max_i[S_(t-1)(i) + T(i,j)]. The best prior score minus a restart penalty is also eligible. Backpointers recover observation arcs, and directed shortest-path bridges insert intervening arcs. Missing candidates return null. Invalid rows, nonpositive elapsed time and gaps above 30 seconds reset the chain. Restarts preserve a matched observation as a new leg when a connection is implausible.")
-    trial = next(r for r in decoder["decoder_trials"] if r["config"] == decoder["selected"])
-    baseline = decoder["classifier"]
     table(["Pipeline", "Mean trip top-1", "Direct continuity", "Sequence F1"],
           [[name, *[f"{record['mean_by_trip'][key]:.4f}" for key in ("top1", "continuity", "sequence_f1")]]
            for name, record in [("Classifier", baseline), ("Classifier + Viterbi", trial)]],
@@ -243,7 +248,7 @@ def build(directory, destination):
     paragraph(f"Observed HTTP {http['http_status']} for trip {http['trip_id']}, {http['observations']:,} observations "
               f"and {http['legs']} route legs. The API logs and structured response summary are included as development_api.log and development_http.json. "
               "The ten student-test trips also passed the API contract. Ground-truth loading occurs after inference, and UI responses contain only predictions and aggregates.")
-    paragraph("The official evidence still requires the organiser-supplied evaluator partition, Laptop 1 serving FastAPI, Laptop 2 serving the UI, and a CMD response screenshot and server logs from that demonstration. See README.md for deployment and REQUIREMENTS_CHECKLIST.md for the audit.")
+    paragraph("The workspace contains ten evaluator trips. The official demonstration evidence is pending: Laptop 1 serving FastAPI, Laptop 2 serving the UI, a successful CMD response screenshot from the receiving laptop, and matching server logs. Record the deployed commit so the demonstration can be checked against the submitted source. See README.md for deployment and REQUIREMENTS_CHECKLIST.md for the audit.")
     paragraph("AI assistance: Codex assisted with implementation, experiment execution, diagnostics and report drafting. The records and derived figures come from executed code. Team review and the ability to explain the implementation are required before submission.")
 
     def footer(canvas, doc):
