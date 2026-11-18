@@ -87,7 +87,7 @@ class RoadRouter:
         return matrix
 
 
-def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
+def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None, *, diagnostics=None):
     router = router or RoadRouter(trip, config.max_network_distance)
     ids = sample.ids
     emission = (np.log(np.clip(probabilities, 1e-5, 1)) -
@@ -98,6 +98,11 @@ def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
     previous_scores = np.empty(ids.shape[1])
     parents = np.full(ids.shape, -1, dtype=int)
     breaks = np.ones(ids.shape, dtype=bool)
+    if diagnostics is not None:
+        diagnostics.update(gap_resets=0, invalid_time_resets=0, missing_previous_resets=0,
+                           disconnected_transitions=0, blocked_transition_steps=0,
+                           selected_transition_restarts=0, intermediate_arcs=0)
+        attempted = np.zeros(len(ids), dtype=bool)
     slot = -1
     for i, row in enumerate(ids):
         if not (row >= 0).any():
@@ -107,6 +112,16 @@ def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
             displacement = np.linalg.norm(trip.gps[i] - trip.gps[i - 1])
             matrix = router.transitions(ids[i - 1], row, sample.fractions[i - 1],
                                         sample.fractions[i], displacement, elapsed, config)
+            if diagnostics is not None:
+                attempted[i] = True
+                previous = ids[i - 1][ids[i - 1] >= 0]
+                current = row[row >= 0]
+                for arc in previous:
+                    distances, _ = router.paths(trip.arcs[arc, 1])
+                    diagnostics["disconnected_transitions"] += sum(
+                        arc != candidate and trip.arcs[candidate, 0] not in distances
+                        for candidate in current)
+                diagnostics["blocked_transition_steps"] += int(not np.isfinite(matrix).any())
             scores = matrix + previous_scores[:, None]
             best = np.argmax(scores, axis=0)
             linked = scores[best, np.arange(len(row))]
@@ -118,6 +133,10 @@ def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
                 disconnected, previous_scores[fallback] - config.break_penalty, linked)
         else:
             previous_scores = emission[i]
+            if diagnostics is not None and i:
+                reason = ("missing_previous_resets" if not (ids[i - 1] >= 0).any() else
+                          "gap_resets" if elapsed > config.max_gap else "invalid_time_resets")
+                diagnostics[reason] += 1
         # Keep row scores bounded without changing the argmax.
         previous_scores -= np.max(previous_scores)
         result[i] = int(np.argmax(previous_scores))
@@ -131,6 +150,8 @@ def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
         result[i] = ids[i, slot]
         slot = parents[i, slot]
     legs = []
+    if diagnostics is not None:
+        diagnostics["selected_transition_restarts"] = int((attempted & reset & (result >= 0)).sum())
     last = -1
     for i, arc in enumerate(result):
         if arc < 0:
@@ -144,5 +165,7 @@ def viterbi(trip, sample, probabilities, config=DecoderConfig(), router=None):
                 legs.append([int(arc)])
             else:
                 legs[-1].extend([*bridge, int(arc)])
+                if diagnostics is not None:
+                    diagnostics["intermediate_arcs"] += len(bridge)
         last = arc
     return Decoded(result, legs)
