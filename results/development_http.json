@@ -1,0 +1,15 @@
+{
+  "http_status": 200,
+  "trip_id": "00000000",
+  "observations": 2503,
+  "legs": 7,
+  "metrics": {
+    "aligned_observations": 2503,
+    "observations": 2503,
+    "top1": 0.9492608869356772,
+    "candidate_miss": 0.001997602876548142,
+    "continuity": 0.9940047961630696,
+    "continuity_pairs": 2502,
+    "sequence_f1": 0.8888888888888888
+  }
+}
