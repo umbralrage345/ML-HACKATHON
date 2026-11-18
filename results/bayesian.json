@@ -1,0 +1,148 @@
+{
+  "config": {
+    "model": "decision_tree",
+    "objective": "Mean grouped CV candidate macro F1",
+    "trials": 8,
+    "sampler": "TPE",
+    "startup_trials": 3,
+    "seed": 42,
+    "space": {
+      "max_depth": [
+        "int",
+        4,
+        18
+      ],
+      "min_samples_leaf": [
+        "int",
+        12,
+        130
+      ]
+    }
+  },
+  "best": {
+    "max_depth": 9,
+    "min_samples_leaf": 125
+  },
+  "history": [
+    {
+      "number": 0,
+      "params": {
+        "max_depth": 9,
+        "min_samples_leaf": 125
+      },
+      "score": 0.8708058576011748,
+      "state": "COMPLETE",
+      "folds": [
+        0.8504046420651143,
+        0.8933053302823835,
+        0.8687076004560268
+      ],
+      "seconds": 16.845819
+    },
+    {
+      "number": 1,
+      "params": {
+        "max_depth": 14,
+        "min_samples_leaf": 83
+      },
+      "score": 0.8694053242754171,
+      "state": "COMPLETE",
+      "folds": [
+        0.8463401244500175,
+        0.8918264572684068,
+        0.8700493911078271
+      ],
+      "seconds": 20.546252
+    },
+    {
+      "number": 2,
+      "params": {
+        "max_depth": 6,
+        "min_samples_leaf": 30
+      },
+      "score": 0.8668614620473605,
+      "state": "COMPLETE",
+      "folds": [
+        0.844656383003296,
+        0.8911171346608793,
+        0.8648108684779063
+      ],
+      "seconds": 13.851624
+    },
+    {
+      "number": 3,
+      "params": {
+        "max_depth": 8,
+        "min_samples_leaf": 123
+      },
+      "score": 0.8694402552695383,
+      "state": "COMPLETE",
+      "folds": [
+        0.8477611197038375,
+        0.8933367745247832,
+        0.8672228715799941
+      ],
+      "seconds": 16.177047
+    },
+    {
+      "number": 4,
+      "params": {
+        "max_depth": 18,
+        "min_samples_leaf": 125
+      },
+      "score": 0.8694967861850674,
+      "state": "COMPLETE",
+      "folds": [
+        0.8487659463910711,
+        0.891788219691132,
+        0.8679361924729994
+      ],
+      "seconds": 20.150418
+    },
+    {
+      "number": 5,
+      "params": {
+        "max_depth": 11,
+        "min_samples_leaf": 76
+      },
+      "score": 0.8696554504688639,
+      "state": "COMPLETE",
+      "folds": [
+        0.8460076478583534,
+        0.8927456940105505,
+        0.8702130095376881
+      ],
+      "seconds": 18.715045
+    },
+    {
+      "number": 6,
+      "params": {
+        "max_depth": 4,
+        "min_samples_leaf": 20
+      },
+      "score": 0.8606962409193102,
+      "state": "COMPLETE",
+      "folds": [
+        0.8417396759392907,
+        0.8861905589360426,
+        0.8541584878825976
+      ],
+      "seconds": 9.518557
+    },
+    {
+      "number": 7,
+      "params": {
+        "max_depth": 10,
+        "min_samples_leaf": 100
+      },
+      "score": 0.870801212004099,
+      "state": "COMPLETE",
+      "folds": [
+        0.8491630167065226,
+        0.892963947223248,
+        0.8702766720825265
+      ],
+      "seconds": 18.311043
+    }
+  ]
+}
